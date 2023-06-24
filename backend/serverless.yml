@@ -1,0 +1,45 @@
+service: nodejs-aws-lambda
+
+custom:
+  tableName: 'visitor-table'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment:
+    VISITORS_TABLE: ${self:custom.tableName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - 'arn:aws:dynamodb:*:*:table/${self:custom.tableName}'
+
+functions:
+  app:
+    handler: dist/index.handler
+    events:
+      - http: ANY /
+      - http: ANY /{proxy+}
+
+resources:
+  Resources:
+    visitorsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
